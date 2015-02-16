@@ -11,10 +11,11 @@ import sys
 import tempfile
 import textwrap
 
-from pip.index import PackageFinder
+from pip.index import PackageFinder, Link
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.locations import build_prefix, src_prefix
-from pip.download import PipSession
+from pip.download import PipSession, is_vcs_url
+from pip.vcs import vcs
 
 from . import settings
 
@@ -107,10 +108,25 @@ class Pundler(object):
             requirement_set.install(install_options, global_options)
 
             for package in requirement_set.requirements.values():
-                if package.satisfied_by and (package.satisfied_by.has_metadata('PKG-INFO')
-                                             or package.satisfied_by.has_metadata('METADATA')):
-                    dep = "%s==%s" % (package.name, package.installed_version)
-                    self.deps[line].append(dep)
+                if package.satisfied_by:
+                    # freeze VCS URLs by saving the checked out commit rather
+                    # than using the package version
+                    if package.url and is_vcs_url(Link(package.url)):
+                        vcs_cls = vcs.get_backend_from_location(package.source_dir)
+                        if not vcs_cls:
+                            logger.error("cannot determine version control system "
+                                         "for %s (%s)", package.source_dir, package.url)
+                            continue
+                        dep = '%s@%s#egg=%s' % (
+                            package.url,
+                            vcs_cls().get_revision(package.source_dir),
+                            package.name
+                        )
+                        self.deps[line].append(dep)
+                    elif (package.satisfied_by.has_metadata('PKG-INFO')
+                          or package.satisfied_by.has_metadata('METADATA')):
+                        dep = "%s==%s" % (package.name, package.installed_version)
+                        self.deps[line].append(dep)
 
             for package in requirement_set.successfully_installed:
                 dep = "%s==%s" % (package.name, package.installed_version)
