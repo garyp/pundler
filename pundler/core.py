@@ -14,6 +14,7 @@ import textwrap
 from pip.index import PackageFinder
 from pip.req import InstallRequirement, RequirementSet, parse_requirements
 from pip.locations import build_prefix, src_prefix
+from pip.download import PipSession
 
 from . import settings
 
@@ -59,6 +60,7 @@ class Pundler(object):
         self.deps = OrderedDict()
         self.args = []
         self.upgrade = upgrade
+        self.session = PipSession()
 
     def get_requirement_set(self, finder, line):
         requirement_set = RequirementSet(
@@ -66,12 +68,14 @@ class Pundler(object):
             src_dir=src_prefix,
             download_dir=None,
             upgrade=self.upgrade,
+            session=self.session
         )
 
         with tempfile.NamedTemporaryFile() as single_req_file:
             single_req_file.write(line)
             single_req_file.flush()
-            for requirement in parse_requirements(single_req_file.name, finder=finder):
+            for requirement in parse_requirements(single_req_file.name, finder=finder,
+                                                  session=self.session):
                 requirement = InstallRequirement.from_line(line, None)
                 requirement_set.add_requirement(requirement)
 
@@ -82,7 +86,8 @@ class Pundler(object):
         # TODO: specify index_urls from optional requirements.yml
         finder = PackageFinder(
             find_links=[],
-            index_urls=["http://pypi.python.org/simple/"]
+            index_urls=["http://pypi.python.org/simple/"],
+            session=self.session
         )
 
         for line in get_requirements(input_filename):
