@@ -104,7 +104,7 @@ class Pundler(object):
             install_options = []
             global_options = []
 
-            requirement_set.prepare_files(finder, force_root_egg_info=False, bundle=False)
+            requirement_set.prepare_files(finder)
             requirement_set.install(install_options, global_options)
 
             for package in requirement_set.requirements.values():
