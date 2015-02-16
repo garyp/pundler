@@ -91,15 +91,14 @@ class Pundler(object):
         )
 
         for line in get_requirements(input_filename):
+            if line.startswith("-"):
+                self.args.append(line)
+                continue
+
             logger.debug("handling requirement: %s", line)
             self.deps[line] = []
 
             requirement_set = self.get_requirement_set(finder, line)
-
-            line = line.strip()
-            if line.startswith("-"):
-                self.args.append(line)
-                continue
 
             install_options = []
             global_options = []
