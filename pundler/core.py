@@ -108,7 +108,8 @@ class Pundler(object):
             requirement_set.install(install_options, global_options)
 
             for package in requirement_set.requirements.values():
-                if package.satisfied_by and package.satisfied_by.has_metadata('PKG-INFO'):
+                if package.satisfied_by and (package.satisfied_by.has_metadata('PKG-INFO')
+                                             or package.satisfied_by.has_metadata('METADATA')):
                     dep = "%s==%s" % (package.name, package.installed_version)
                     self.deps[line].append(dep)
 
